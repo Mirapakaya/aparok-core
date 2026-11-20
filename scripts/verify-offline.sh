@@ -43,11 +43,7 @@ echo "==> Checking for outbound HTTP/dial call sites..."
 patterns='http\.Get|http\.Post|http\.NewRequest|net\.Dial\(|net\.DialTimeout|net\.DialContext|net\.DialTCP|net\.DialUDP|DialTCP|DialUDP|http\.Client'
 files=$(grep -RrE "$patterns" --include="*.go" . 2>/dev/null | grep -v "_test.go" | grep -v "/mock_" | grep -v "vendor/" | grep -v "^./cmd/" || true)
 
-pending=(
-  core/identity
-  core/api
-  space/spacecore/localdiscovery
-)
+pending=()
 
 bad=""
 while IFS= read -r line; do

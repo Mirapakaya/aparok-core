@@ -563,7 +563,7 @@ func (s *MCPServer) errorText(err error) string {
 }
 
 // isTransportError reports whether the request never got an HTTP response:
-// client.do wraps http.Client.Do's *url.Error (dial refused, timeout, DNS)
+// client.do wraps HTTP client.Do's *url.Error (dial refused, timeout, DNS)
 // with %w, so the chain identifies it structurally.
 func isTransportError(err error) bool {
 	var ue *url.Error
