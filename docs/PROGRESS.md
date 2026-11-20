@@ -1,14 +1,14 @@
 # Aparok Autonomous Build Progress
 
 > Branch: `aparok/offline-private` (`Mirapakaya/aparok-core`)  
-> Last updated: 2026-11-20
+> Last updated: 2026-11-20 (P2 complete)
 
 ## Phase Status
 
 | Phase | Description | Status | Notes |
 |-------|-------------|--------|-------|
 | P1 | Forks & Codespace setup | Done | `aparok-core` and `aparok-sync` forks, any-sync replace, javapkg `io.aparok.mw` |
-| P2 | Remove outbound network clients | In progress | Build/verify green; 3 packages still pending |
+| P2 | Remove outbound network clients | Done | All outbound HTTP/dial call sites removed or runtime-blocked; verify-offline passes with empty pending list |
 | P3 | Core CI workflows | Not started | Needs Android SDK/NDK setup |
 | P4 | App integration / AAR | Not started | Waiting on P3 |
 | P5 | Encryption at rest | Not started | |
@@ -37,12 +37,9 @@
 - `core/block/import` (removed `notion/` and `web/`)
 - `core/block/importv2` (notion client no-op)
 - `metrics/anymetry`
-
-### Pending runtime-blocked packages
-
-- `core/identity`
-- `core/api`
-- `space/spacecore/localdiscovery` (excluded on Android by build tag `!android`)
+- `core/identity` (offline no-op: local profile retained, remote repo/naming calls removed)
+- `core/api` (offline no-op: JSON API service and wrapper client stubbed, server package removed)
+- `space/spacecore/localdiscovery` (self-connect probe no-opped; package is `!android`)
 
 ## Verification
 
@@ -61,3 +58,4 @@ All three pass.
 - `GO-0: offline no-op llmclient for ai package`
 - `GO-0: offline no-op payments service, remove cache and emailcollector subpackages`
 - `GO-0: disable url uploads, remove import notion/web, no-op importv2 notion client, update progress`
+- `GO-0: offline no-op identity service, api service/wrapper, localdiscovery; empty verify-offline pending list`
