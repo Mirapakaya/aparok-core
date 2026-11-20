@@ -33,11 +33,8 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -66,7 +63,6 @@ import (
 	"github.com/anyproto/anytype-heart/pkg/lib/pb/model"
 	"github.com/anyproto/anytype-heart/util/anyerror"
 	"github.com/anyproto/anytype-heart/util/constant"
-	"github.com/anyproto/anytype-heart/util/uri"
 )
 
 var log = logging.Logger("file-uploader")
@@ -511,71 +507,9 @@ func (u *uploader) AddOptions(options ...files.AddOption) Uploader {
 }
 
 func (u *uploader) SetUrl(url string) Uploader {
-	url, err := uri.NormalizeURI(url)
-	if err != nil {
-		// do nothing
-	}
+	// URL downloads are disabled in the offline build.
 	u.getReader = func(ctx context.Context) (*fileReader, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		// setting timeout to avoid locking for a long time
-		cl := http.DefaultClient
-
-		resp, err := cl.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, fmt.Errorf("%w, status: %d", ErrFailedToDownload, resp.StatusCode)
-		}
-
-		var fileName string
-		if content := resp.Header.Get("Content-Disposition"); content != "" {
-			contentDisposition := strings.Split(content, "filename=")
-			if len(contentDisposition) > 1 {
-				fileName = strings.Trim(contentDisposition[1], "\"")
-			}
-		}
-		if fileName == "" {
-			fileName = uri.GetFileNameFromURLAndContentType(resp.Request.URL, resp.Header.Get("Content-Type"))
-		}
-
-		tmpFile, err := ioutil.TempFile(u.tempDirProvider.TempDir(), "anytype_downloaded_file_*")
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = io.Copy(tmpFile, resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = tmpFile.Seek(0, io.SeekStart)
-		if err != nil {
-			return nil, err
-		}
-
-		buf := bufio.NewReaderSize(tmpFile, bufSize)
-		bsc := &bufioSeekClose{
-			Reader: buf,
-			seek: func(offset int64, whence int) (int64, error) {
-				buf.Reset(tmpFile)
-				return tmpFile.Seek(offset, whence)
-			},
-			close: func() error {
-				_ = tmpFile.Close()
-				os.Remove(tmpFile.Name())
-				return resp.Body.Close()
-			},
-		}
-		return &fileReader{
-			bufioSeekClose: bsc,
-			fileName:       fileName,
-		}, nil
+		return nil, ErrFailedToDownload
 	}
 	return u
 }

@@ -23,6 +23,7 @@ Import flow:
 
 import (
 	"context"
+	"errors"
 
 	"github.com/anyproto/any-sync/app"
 	"github.com/google/uuid"
@@ -38,10 +39,8 @@ import (
 	"github.com/anyproto/anytype-heart/core/block/import/csv"
 	"github.com/anyproto/anytype-heart/core/block/import/html"
 	"github.com/anyproto/anytype-heart/core/block/import/markdown"
-	"github.com/anyproto/anytype-heart/core/block/import/notion"
 	pbc "github.com/anyproto/anytype-heart/core/block/import/pb"
 	"github.com/anyproto/anytype-heart/core/block/import/txt"
-	"github.com/anyproto/anytype-heart/core/block/import/web"
 	"github.com/anyproto/anytype-heart/core/block/object/objectcreator"
 	"github.com/anyproto/anytype-heart/core/block/process"
 	"github.com/anyproto/anytype-heart/core/domain"
@@ -132,9 +131,7 @@ func (i *Import) setupConverters(a *app.App) {
 
 	converters := []common.Converter{
 		markdown.New(tempDirProvider, collectionService),
-		notion.New(collectionService),
 		pbc.New(collectionService, accountService, tempDirProvider),
-		web.NewConverter(),
 		html.New(collectionService, tempDirProvider),
 		txt.New(collectionService),
 		csv.New(collectionService),
@@ -210,13 +207,11 @@ func (i *Import) ListImports(_ *pb.RpcObjectImportListRequest) ([]*pb.RpcObjectI
 func (i *Import) ValidateNotionToken(
 	ctx context.Context, req *pb.RpcObjectImportNotionValidateTokenRequest,
 ) (pb.RpcObjectImportNotionValidateTokenResponseErrorCode, error) {
-	tv := notion.NewTokenValidator()
-	return tv.Validate(ctx, req.GetToken())
+	return pb.RpcObjectImportNotionValidateTokenResponseError_UNKNOWN_ERROR, errors.New("Notion import disabled in offline build")
 }
 
 func (i *Import) ImportWeb(ctx context.Context, req *ImportRequest) (string, *domain.Details, error) {
-	processor := NewProcessor(i.deps, req)
-	return processor.ExecuteWebImport(ctx)
+	return "", nil, errors.New("web import disabled in offline build")
 }
 
 func convertType(cType string) pb.RpcObjectImportListImportResponseType {

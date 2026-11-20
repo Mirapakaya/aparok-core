@@ -1263,7 +1263,7 @@ func (r *run) buildResult(fatal importv2.Issue, rootSpec importv2.RootSpec) *imp
 // stopFatal and runstore.IsCorrupted already follow. It used to read the
 // error's shape instead, and matched anything wrapping
 // context.DeadlineExceeded: including the Notion client's own
-// http.Client{Timeout: time.Minute}, so a 60-second server hang reported
+// client{Timeout: time.Minute}, so a 60-second server hang reported
 // itself as the user's cancel (review item 1). A ctx-shaped error on a LIVE
 // context is a source failure like any other, and keeps its retryable shape
 // for the transient-keep classification.

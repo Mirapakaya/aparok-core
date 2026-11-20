@@ -1,197 +1,56 @@
-// Package client is the Notion API transport layer: auth/versioning, JSON
-// codec, a shared rate pacer (~3 rps with 429/529 pushback propagated across
-// workers), bounded ctx-aware retries, and typed errors. The Transport and
-// FileFetcher seams make the whole crawl replayable without a network
-// (go-vcr cassettes and hand-written mocks).
+// Package client is a no-op Notion API transport for the offline Aparok build.
 package client
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
-	"time"
-
-	"golang.org/x/time/rate"
 )
 
 const (
 	BaseURL = "https://api.notion.com/v1"
-	// apiVersion pins the data-sources API generation: older versions get
-	// ZERO search results for any database a user split into multiple data
-	// sources — silent, total data loss for that database and its pages.
-	apiVersion = "2025-09-03"
-
-	// requestsPerSecond follows Notion's documented average; bursts are
-	// allowed by the API, pushback is handled via Retry-After.
-	requestsPerSecond = 3
-	// requestsPerPage is what one page costs: the page object plus its block
-	// tree (notion/prefetch.go). Deep trees cost more, so this is the
-	// OPTIMISTIC figure — which is what a ceiling must be.
-	requestsPerPage = 2
 )
 
-// PageRateCeiling is the fastest a crawl of this API can possibly go, in
-// pages per second. The fetching ETA is capped by it so a burst can
-// never promise the user a finish time Notion will not allow.
-func PageRateCeiling() float64 {
-	return float64(requestsPerSecond) / requestsPerPage
-}
+// PageRateCeiling returns 0 in offline builds.
+func PageRateCeiling() float64 { return 0 }
 
-// Transport performs exactly one Notion API round trip. Production wraps
-// http.Client; tests substitute recorders or hostile fakes.
+// Transport mirrors the original transport interface.
 type Transport interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// FileFetcher downloads one (pre-signed, expiring) file URL into dst.
+// FileFetcher mirrors the original file fetcher interface.
 type FileFetcher interface {
 	Fetch(ctx context.Context, url string, dst io.Writer) error
 }
 
+// Client is the offline no-op Notion client.
 type Client struct {
-	transport Transport
-	baseURL   string
-	token     string
-	retry     RetryPolicy
-	pacer     *pacer
-	status    StatusHook
+	status StatusHook
 }
 
+// Option configures the client.
 type Option func(*Client)
 
-func WithTransport(transport Transport) Option {
-	return func(c *Client) { c.transport = transport }
-}
+// WithTransport is a no-op in offline builds.
+func WithTransport(transport Transport) Option { return func(c *Client) {} }
 
-func WithBaseURL(baseURL string) Option {
-	return func(c *Client) { c.baseURL = baseURL }
-}
+// WithBaseURL is a no-op in offline builds.
+func WithBaseURL(baseURL string) Option { return func(c *Client) {} }
 
-func WithRetryPolicy(policy RetryPolicy) Option {
-	return func(c *Client) { c.retry = policy }
-}
+// WithRetryPolicy is a no-op in offline builds.
+func WithRetryPolicy(policy RetryPolicy) Option { return func(c *Client) {} }
 
-// WithRateLimit overrides the request pacing (tests use a high limit).
-func WithRateLimit(requestsPerSecond float64) Option {
-	return func(c *Client) { c.pacer = newPacer(rate.Limit(requestsPerSecond)) }
-}
+// WithRateLimit is a no-op in offline builds.
+func WithRateLimit(requestsPerSecond float64) Option { return func(c *Client) {} }
 
+// NewClient returns an offline no-op client.
 func NewClient(token string, opts ...Option) *Client {
-	c := &Client{
-		transport: &http.Client{Timeout: time.Minute},
-		baseURL:   BaseURL,
-		token:     token,
-		retry:     DefaultRetryPolicy(),
-		pacer:     newPacer(rate.Limit(requestsPerSecond)),
-		status:    noopStatusHook{},
-	}
-	for _, opt := range opts {
-		opt(c)
-	}
-	return c
+	return &Client{}
 }
 
-// Request performs one logical API call: paced, retried within bounds,
-// decoded into out (which may be nil).
+// Request always fails in offline builds.
 func (c *Client) Request(ctx context.Context, method, path string, body any, out any) error {
-	var payload []byte
-	if body != nil {
-		var err error
-		payload, err = json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("encode request body: %w", err)
-		}
-	}
-
-	deadline := time.Now().Add(c.retry.TotalBudget)
-	var lastErr error
-	signalled := false // a Throttled/Retrying edge was reported for this call
-	for attempt := 0; attempt < c.retry.MaxAttempts; attempt++ {
-		if attempt > 0 {
-			delay := c.retry.backoff(attempt)
-			if retryAfter := retryAfterOf(lastErr); retryAfter > 0 {
-				delay = retryAfter
-			}
-			if time.Now().Add(delay).After(deadline) {
-				break // budget exhausted, report the last error
-			}
-			c.status.Retrying(attempt, c.retry.MaxAttempts)
-			signalled = true
-			if err := sleepCtx(ctx, delay); err != nil {
-				return err
-			}
-		}
-		// A pending pushback pause is the calm THROTTLED state, not an
-		// error: report it with its resume time before waiting it out.
-		if pause := c.pacer.pauseRemaining(); pause > 0 {
-			c.status.Throttled(pause)
-			signalled = true
-		}
-		if err := c.pacer.Wait(ctx); err != nil {
-			return err // cancelled mid-wait: no recovery — the run is stopping
-		}
-
-		lastErr = c.doOnce(ctx, method, path, payload, out)
-		if lastErr == nil {
-			if signalled {
-				c.status.Recovered()
-			}
-			return nil
-		}
-		if !IsRetryable(lastErr) {
-			return lastErr
-		}
-		if retryAfter := retryAfterOf(lastErr); retryAfter > 0 {
-			// One worker's 429 pushes every worker back.
-			c.pacer.pushback(retryAfter)
-		}
-	}
-	return fmt.Errorf("retries exhausted: %w", lastErr)
-}
-
-func (c *Client) doOnce(ctx context.Context, method, path string, payload []byte, out any) error {
-	var bodyReader io.Reader
-	if payload != nil {
-		bodyReader = bytes.NewReader(payload)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
-	if err != nil {
-		return fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Notion-Version", apiVersion)
-	if payload != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	res, err := c.transport.Do(req)
-	if err != nil {
-		return &transportError{err: err}
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return errorFromResponse(res)
-	}
-	if out == nil {
-		return nil
-	}
-	if err := json.NewDecoder(res.Body).Decode(out); err != nil {
-		return fmt.Errorf("decode response: %w", err)
-	}
-	return nil
-}
-
-func sleepCtx(ctx context.Context, d time.Duration) error {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return errors.New("notion import disabled in offline build")
 }

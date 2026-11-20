@@ -219,7 +219,7 @@ func (s *service) resumeCrawlRun(ctx context.Context, store *runstore.Store, man
 // Notion call is retryable-SHAPED — "retries exhausted" wrapping a transport
 // context.Canceled — so a retryability test alone kept a cancelled import's
 // dir, token intact, for the next start to silently re-run (review P0-C);
-// and a transport DEADLINE — the client's own http.Client{Timeout:
+// and a transport DEADLINE — the client's own client{Timeout:
 // time.Minute} — wore the cancel's code, so reading the code let a
 // 60-second server hang delete a two-hour crawl. A suspend is not a cancel
 // (its cause is ErrSuspended), and the engine says so on both fields;

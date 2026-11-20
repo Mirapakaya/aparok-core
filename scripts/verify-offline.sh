@@ -44,11 +44,8 @@ patterns='http\.Get|http\.Post|http\.NewRequest|net\.Dial\(|net\.DialTimeout|net
 files=$(grep -RrE "$patterns" --include="*.go" . 2>/dev/null | grep -v "_test.go" | grep -v "/mock_" | grep -v "vendor/" | grep -v "^./cmd/" || true)
 
 pending=(
-  core/block/import
-  core/block/importv2
   core/identity
   core/api
-  core/files/fileuploader
   space/spacecore/localdiscovery
 )
 

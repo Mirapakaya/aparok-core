@@ -84,7 +84,7 @@ type Result struct {
 	// SOURCE, read from the cancel cause of the context the caller owns,
 	// never from the fatal's code: a code is a shape, and both shapes lie
 	// in opposite directions (review item 1). A transport deadline — the
-	// Notion client's own http.Client{Timeout: time.Minute} — wears the
+	// Notion client's own client{Timeout: time.Minute} — wears the
 	// cancel's shape while nobody cancelled, so reading the code deleted a
 	// two-hour crawl on a 60-second server hang; a cancelled Notion call
 	// wears a retryable failure's shape, so reading the code kept a

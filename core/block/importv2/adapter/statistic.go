@@ -533,7 +533,7 @@ type statVerdict struct {
 // verdictOf classifies a settled run. The STOP SOURCE decides, never the
 // fatal's code (review item 1): a user cancel and a shutdown suspend are
 // deliberate stops and not errors, while a transport deadline WEARING the
-// cancel's code — the Notion client's own http.Client{Timeout: time.Minute}
+// cancel's code — the Notion client's own client{Timeout: time.Minute}
 // — is a failure whatever it is labelled.
 func verdictOf(result *importv2.Result) statVerdict {
 	if result == nil || result.Err == nil || result.Suspended || result.Cancelled {

@@ -15,7 +15,6 @@ import (
 	"github.com/anyproto/anytype-heart/core/block/import/common"
 	creator "github.com/anyproto/anytype-heart/core/block/import/common/objectcreator"
 	"github.com/anyproto/anytype-heart/core/block/import/common/workerpool"
-	"github.com/anyproto/anytype-heart/core/block/import/web"
 	"github.com/anyproto/anytype-heart/core/block/process"
 	"github.com/anyproto/anytype-heart/core/domain"
 	"github.com/anyproto/anytype-heart/core/domain/objectorigin"
@@ -31,7 +30,6 @@ import (
 
 type ImportProcessor interface {
 	Execute(ctx context.Context) *ImportResponse
-	ExecuteWebImport(ctx context.Context) (string, *domain.Details, error)
 }
 
 func NewProcessor(deps *Dependencies, req *ImportRequest) ImportProcessor {
@@ -558,39 +556,6 @@ func (p *importProcessor) sendImportFinishEvent() {
 			ImportType:       p.request.Type,
 		},
 	}))
-}
-
-func (p *importProcessor) ExecuteWebImport(ctx context.Context) (string, *domain.Details, error) {
-	if p.request.Progress == nil {
-		if err := p.setupProgressBar(); err != nil {
-			return "", nil, fmt.Errorf("failed to add process: %w", err)
-		}
-	}
-
-	defer p.request.Progress.Finish(nil)
-	p.request.Progress.SetProgressMessage("Parse url")
-
-	w := p.deps.converters[web.Name]
-	converterResponse, converterError := w.GetSnapshots(ctx, p.request.RpcObjectImportRequest, p.request.Progress)
-	if converterError != nil {
-		return "", nil, converterError.Error()
-	}
-
-	if len(converterResponse.Snapshots) == 0 {
-		return "", nil, fmt.Errorf("snpashots are empty")
-	}
-
-	p.request.Progress.SetProgressMessage("Create objects")
-
-	if err := p.initConversionFields(converterResponse, nil); err != nil {
-		return "", nil, err
-	}
-
-	details, _ := p.createObjects(ctx)
-	if !p.errors.IsEmpty() {
-		return "", nil, fmt.Errorf("couldn't create objects")
-	}
-	return converterResponse.Snapshots[0].Id, details[converterResponse.Snapshots[0].Id], nil
 }
 
 func shouldReturnError(e error, res *common.Response, req *pb.RpcObjectImportRequest) bool {
