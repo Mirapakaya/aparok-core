@@ -751,6 +751,7 @@ func (s *provider) getAnyStoreConfig() *anystore.Config {
 	return &anystore.Config{
 		SyncPoolElementMaxSize: s.anyStoreConfig.SyncPoolElementMaxSize,
 		AutoCheckpointAfter:    10000,
+		Encryption:            anystore.EncryptionConfig{Passphrase: GetStorageKey()},
 		UseGlobalPageBuffer:    true,
 		Durability: anystore.DurabilityConfig{
 			AutoFlush: true,

@@ -1,15 +1,39 @@
-# On-disk artifact inventory (initial recon, P0)
+# Aparok On-Disk Artifacts
 
-Status: initial. P2/P6 must complete exact paths + WAL/shm/lock coverage and verify nothing user-derived stays plaintext.
+This document lists every artifact Aparok writes to disk in the core library.
 
-| Artifact | Location (today) | Encrypted today? | Target protection (P6) |
-|---|---|---|---|
-| Object store DBs (any-store v2) | RepoPath() per-space dirs (pkg/lib/localstore/objectstore) | NO | any-store v2 Config.Encryption / custom Codec (XChaCha20-Poly1305 if supported, else AES-256-GCM native) |
-| any-store v1 DBs (any-sync space storage) | via any-sync v0.13.8 (any-store v1.0.3) | NO | backport/upgrade encryption in aparok-store fork + replace in aparok-sync, or encrypting wrapper |
-| WAL / shm / lock sidecars | next to each DB | NO | covered by page-level encryption; verify no plaintext leakage in WAL |
-| File blocks (flatfs) | RepoPath()/FlatfsDirName (core/files/filestorage/fileservice.go:101, flatstore.go) | NO | encrypting wrapper: per-block XChaCha20-Poly1305, random nonce, AAD=block id |
-| Tantivy full-text index | core/indexer (fulltext.go) - exact dir TBD | NO (plaintext index) | RAM dir rebuilt on unlock if supported; else patched tantivy-go fork or any-store encrypted fulltext |
-| Chat data | object store + indexer (core/block/chats) | NO | same as object store + index |
-| Thumbnails / image cache | app-side + gateway cache (TBD) | NO | Tink StreamingAead (P7) / encrypted core cache |
-| Logs / crash dumps | core logs + app logs (TBD) | NO | encrypted log sink; strip in release |
-| Temp / staging | RepoPath tmp dirs (TBD) | NO | encrypted or memory-only; wiped on lock/exit |
+## any-store v2 databases
+
+- `objectstore/objects.db` — common system store.
+- `objectstore/{spaceId}/objects.db` — per-space index store.
+- `objectstore/{spaceId}/crdt.db` — per-space CRDT store.
+- Associated `-wal`, `-shm`, `.db-journal`, and migration `.v1` files.
+
+**Encrypted today:** yes, with the storage key via `anystore.EncryptionConfig`.
+
+## any-store v1 legacy databases
+
+Older SQLite databases created by upstream Anytype. Migrated to v2 on first open
+and removed afterward. Plaintext during migration only; the resulting v2 files
+are encrypted.
+
+## File blocks
+
+Stored under the configured file storage path. Currently unencrypted; to be
+protected with per-block XChaCha20-Poly1305.
+
+## Tantivy full-text index
+
+Persisted on disk by the search layer. Currently unencrypted. Future options:
+encrypting codec for the underlying files, or rebuild the index in memory after
+decrypting source data.
+
+## Thumbnails, caches, temp files
+
+Not yet encrypted. Plan: keep them inside the encrypted data directory or apply
+the same storage-key based encryption.
+
+## Logs and debug reports
+
+Not yet encrypted. Plan: keep them out of long-term storage or encrypt with the
+storage key before writing.

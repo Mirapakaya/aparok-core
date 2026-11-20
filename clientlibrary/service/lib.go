@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"github.com/anyproto/anytype-heart/pkg/lib/datastore/anystoreprovider"
 	"os"
 	"runtime"
 	"sync"
@@ -79,4 +80,8 @@ func SetEventHandlerMobile(eh MessageHandler) {
 		}
 		eh.Handle(b)
 	})
+}
+
+func SetStorageKey(key []byte) {
+	anystoreprovider.SetStorageKey(key)
 }
