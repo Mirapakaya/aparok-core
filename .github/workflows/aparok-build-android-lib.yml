@@ -1,0 +1,103 @@
+name: Aparok Android Library Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version suffix (e.g. offline-0.0.1). Defaults to short SHA.'
+        required: false
+        default: ''
+  push:
+    branches:
+      - aparok/offline-private
+
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
+jobs:
+  build-android-lib:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          check-latest: true
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Android NDK 28
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28b
+          local-cache: true
+
+      - name: Export NDK path
+        run: |
+          NDK28=$(ls -d ${ANDROID_HOME}/ndk/28.* 2>/dev/null | sort -V | tail -1)
+          if [ -z "$NDK28" ]; then
+            echo "ERROR: NDK 28.x not found in $ANDROID_HOME/ndk"
+            ls ${ANDROID_HOME}/ndk/
+            exit 1
+          fi
+          echo "Using NDK: $NDK28"
+          echo "ANDROID_NDK=$NDK28" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK28" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$NDK28" >> $GITHUB_ENV
+
+      - name: Set build version
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          if [ -z "$VERSION" ]; then
+            VERSION=$(git rev-parse --short HEAD)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "MAVEN_ARTIFACT_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/goandroid@latest || true
+          gomobile init
+
+      - name: Build Android AAR
+        run: |
+          mkdir -p .release
+          make compile-android-lib
+          ls -lha lib.aar
+          ls -lha .release/
+
+      - name: Upload AAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aparok-android-lib-${{ env.VERSION }}
+          path: |
+            lib.aar
+            .release/android_lib_${{ env.VERSION }}.tar.gz
+
+      - name: Publish GitHub release
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: aparok-android-lib-${{ env.VERSION }}
+          name: Aparok Android Library ${{ env.VERSION }}
+          files: |
+            lib.aar
+            .release/android_lib_${{ env.VERSION }}.tar.gz
