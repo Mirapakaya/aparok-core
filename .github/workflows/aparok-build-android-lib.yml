@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version suffix (e.g. offline-0.0.1). Defaults to short SHA.'
+        description: 'Version tag (e.g. v0.0.1). Defaults to run number + short SHA.'
         required: false
         default: ''
   push:
@@ -13,7 +13,7 @@ on:
 
 permissions:
   contents: write
-  packages: write
+  packages: read
   actions: write
 
 jobs:
@@ -64,10 +64,9 @@ jobs:
         run: |
           VERSION=${{ github.event.inputs.version }}
           if [ -z "$VERSION" ]; then
-            VERSION=$(git rev-parse --short HEAD)
+            VERSION="${{ github.run_number }}-${{ github.sha }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "MAVEN_ARTIFACT_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install gomobile
         run: |
@@ -82,14 +81,11 @@ jobs:
           ls -lha lib.aar
           ls -lha .release/
 
-      - name: Publish to GitHub Packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USER: ${{ github.actor }}
-          MAVEN_ARTIFACT_ID: anytype-heart-android
-          MAVEN_ARTIFACT_NAME: lib.aar
-          MAVEN_ARTIFACT_VERSION: ${{ env.VERSION }}
-        run: gradle publish
+      - name: Create checksums
+        run: |
+          sha256sum lib.aar > lib.aar.sha256
+          sha256sum .release/android_lib_${{ env.VERSION }}.tar.gz > .release/android_lib_${{ env.VERSION }}.tar.gz.sha256 || true
+          cat lib.aar.sha256
 
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
@@ -97,16 +93,19 @@ jobs:
           name: aparok-android-lib-${{ env.VERSION }}
           path: |
             lib.aar
+            lib.aar.sha256
             .release/android_lib_${{ env.VERSION }}.tar.gz
+            .release/android_lib_${{ env.VERSION }}.tar.gz.sha256
 
-      - name: Publish GitHub release
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+      - name: Publish GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: aparok-android-lib-${{ env.VERSION }}
-          name: Aparok Android Library ${{ env.VERSION }}
+          tag_name: aparok-core-${{ env.VERSION }}
+          name: Aparok Core ${{ env.VERSION }}
           files: |
             lib.aar
+            lib.aar.sha256
             .release/android_lib_${{ env.VERSION }}.tar.gz
+            .release/android_lib_${{ env.VERSION }}.tar.gz.sha256

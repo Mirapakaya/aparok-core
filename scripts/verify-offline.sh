@@ -19,6 +19,16 @@ banned_transports=(
   "github.com/anyproto/any-sync/net/transport/webtransport"
 )
 
+banned_packages=(
+  "github.com/getsentry/sentry-go"
+  "github.com/amplitude/analytics-go"
+  "github.com/prometheus/client_golang"
+  "github.com/uber/jaeger-client-go"
+  "github.com/uber/jaeger-lib"
+  "github.com/libp2p/go-libp2p"
+  "github.com/opengraph/opengraph"
+)
+
 echo "==> Checking banned transport/discovery packages..."
 found_banned=""
 for pkg in "${banned_transports[@]}"; do
@@ -28,8 +38,16 @@ for pkg in "${banned_transports[@]}"; do
   fi
 done
 
+echo "==> Checking banned upstream/telemetry packages..."
+for pkg in "${banned_packages[@]}"; do
+  if echo "$deps" | grep -qxF "$pkg"; then
+    echo "BANNED in deps: $pkg"
+    found_banned="yes"
+  fi
+done
+
 if [ -n "$found_banned" ]; then
-  echo "ERROR: banned transport packages found in mobile dependency graph"
+  echo "ERROR: banned packages found in mobile dependency graph"
   exit 1
 fi
 
