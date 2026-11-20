@@ -9,8 +9,8 @@
 |-------|-------------|--------|-------|
 | P1 | Forks & Codespace setup | Done | `aparok-core` and `aparok-sync` forks, any-sync replace, javapkg `io.aparok.mw` |
 | P2 | Remove outbound network clients | Done | All outbound HTTP/dial call sites removed or runtime-blocked; verify-offline passes with empty pending list |
-| P3 | Core CI workflows | In progress | Added `.github/workflows/aparok-build-android-lib.yml`; publishes AAR to GitHub Packages |
-| P4 | App integration / AAR | Not started | Needs Android app settings.gradle + middlewareVersion update |
+| P3 | Core CI workflows | Done | `.github/workflows/aparok-build-android-lib.yml` added; publishes AAR to GitHub Packages |
+| P4 | App integration / AAR | In progress | Android `aparok-rebrand.yml` patched to pull AAR from `Mirapakaya/aparok-core` GitHub Packages |
 | P5 | Encryption at rest | Not started | |
 | P6 | Local profile | Not started | `core/identity` partially retained |
 | P7 | Storage location selection | Not started | |
@@ -61,3 +61,4 @@ All three pass.
 - `GO-0: offline no-op identity service, api service/wrapper, localdiscovery; empty verify-offline pending list`
 - `GO-0: add aparok android library build workflow; publish AAR to github packages`
 - `GO-0: point gradle publishing to aparok-core github packages`
+- `GO-0: patch Android aparok-rebrand workflow to use aparok-core AAR`
