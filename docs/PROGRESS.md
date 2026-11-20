@@ -11,7 +11,7 @@
 | P2 | Remove outbound network clients | Done | All outbound HTTP/dial call sites removed or runtime-blocked; verify-offline passes with empty pending list |
 | P3 | Core CI workflows | Done | `.github/workflows/aparok-build-android-lib.yml` added; publishes AAR as public GitHub Release asset with SHA-256 |
 | P4 | App integration / AAR | Done | Android `aparok-rebrand.yml` fetches `lib.aar` from `Mirapakaya/aparok-core` public release, verifies checksum, removes GitHub Packages / PAT dependency |
-| P5 | Encryption at rest | Not started | |
+| P5 | Encryption at rest | In progress | any-store DBs encrypted via `SetStorageKey`; file blocks / thumbnails still pending |
 | P6 | Local profile | Not started | `core/identity` partially retained |
 | P7 | Storage location selection | Not started | |
 | P8 | Backup/restore | Not started | |
@@ -64,3 +64,4 @@ All three pass.
 - `GO-0: patch Android aparok-rebrand workflow to use aparok-core AAR`
 - `GO-0: restore banned package list in verify-offline; publish core AAR as public release asset`
 - `GO-0: fetch aparok core AAR from public release and remove github packages dependency`
+- `GO-0: encrypt any-store databases with a gomobile-exported storage key`
