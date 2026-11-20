@@ -82,6 +82,15 @@ jobs:
           ls -lha lib.aar
           ls -lha .release/
 
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER: ${{ github.actor }}
+          MAVEN_ARTIFACT_ID: anytype-heart-android
+          MAVEN_ARTIFACT_NAME: lib.aar
+          MAVEN_ARTIFACT_VERSION: ${{ env.VERSION }}
+        run: gradle publish
+
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
         with:
