@@ -67,6 +67,7 @@ jobs:
           go build -o $GITHUB_WORKSPACE/deps/gomobile golang.org/x/mobile/cmd/gomobile
           go build -o $GITHUB_WORKSPACE/deps/gobind golang.org/x/mobile/cmd/gobind
           echo "$GITHUB_WORKSPACE/deps" >> $GITHUB_PATH
+          export PATH="$GITHUB_WORKSPACE/deps:$PATH"
           gomobile init
 
       - name: Build Android AAR
