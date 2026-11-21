@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/anyproto/anytype-heart/core/block/import/common/objectid/mock_objectid"
-	"github.com/anyproto/anytype-heart/core/block/import/web/parsers/mock_parsers"
+	
 	"github.com/anyproto/anytype-heart/core/block/process"
 	"github.com/anyproto/anytype-heart/core/files/filesync/mock_filesync"
 	"github.com/anyproto/anytype-heart/space/mock_space"
@@ -21,8 +21,8 @@ import (
 	"github.com/anyproto/anytype-heart/core/block/import/common/mock_common"
 	"github.com/anyproto/anytype-heart/core/block/import/common/objectcreator/mock_objectcreator"
 	pbc "github.com/anyproto/anytype-heart/core/block/import/pb"
-	"github.com/anyproto/anytype-heart/core/block/import/web"
-	"github.com/anyproto/anytype-heart/core/block/import/web/parsers"
+	
+	
 	"github.com/anyproto/anytype-heart/core/domain/objectorigin"
 	"github.com/anyproto/anytype-heart/core/event/mock_event"
 	"github.com/anyproto/anytype-heart/core/notifications/mock_notifications"
@@ -485,142 +485,6 @@ func Test_ListImports(t *testing.T) {
 	assert.NotNil(t, res)
 	assert.Len(t, res, 1)
 	assert.True(t, res[0].Type == pb.RpcObjectImportListImportResponseType(0) || res[1].Type == pb.RpcObjectImportListImportResponseType(0))
-}
-
-func Test_ImportWebNoParser(t *testing.T) {
-	i := Import{deps: &Dependencies{}}
-	i.deps.converters = make(map[string]common.Converter, 0)
-	i.deps.converters[web.Name] = web.NewConverter()
-
-	creator := mock_objectcreator.NewMockService(t)
-	i.deps.objectCreator = creator
-	i.deps.idProvider = mock_objectid.NewMockIdAndKeyProvider(t)
-	_, _, err := i.ImportWeb(context.Background(), &ImportRequest{
-		RpcObjectImportRequest: &pb.RpcObjectImportRequest{
-			Params:                &pb.RpcObjectImportRequestParamsOfBookmarksParams{BookmarksParams: &pb.RpcObjectImportRequestBookmarksParams{Url: "http://example.com"}},
-			UpdateExistingObjects: true,
-		},
-		Progress: process.NewNoOp(),
-	})
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown url format")
-}
-
-func Test_ImportWebFailedToParse(t *testing.T) {
-	i := Import{deps: &Dependencies{}}
-
-	i.deps.converters = make(map[string]common.Converter, 0)
-	i.deps.converters[web.Name] = web.NewConverter()
-	creator := mock_objectcreator.NewMockService(t)
-	i.deps.objectCreator = creator
-	i.deps.idProvider = mock_objectid.NewMockIdAndKeyProvider(t)
-	parser := mock_parsers.NewMockParser(t)
-	parser.EXPECT().MatchUrl("http://example.com").Return(true).Times(1)
-	parser.EXPECT().ParseUrl("http://example.com").Return(nil, errors.New("failed")).Times(1)
-
-	new := func() parsers.Parser {
-		return parser
-	}
-	parsers.RegisterFunc(new)
-
-	_, _, err := i.ImportWeb(context.Background(), &ImportRequest{
-		RpcObjectImportRequest: &pb.RpcObjectImportRequest{
-			Params:                &pb.RpcObjectImportRequestParamsOfBookmarksParams{BookmarksParams: &pb.RpcObjectImportRequestBookmarksParams{Url: "http://example.com"}},
-			UpdateExistingObjects: true,
-		},
-		Progress: process.NewNoOp(),
-	})
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed")
-}
-
-func Test_ImportWebSuccess(t *testing.T) {
-	i := Import{deps: &Dependencies{}}
-	parsers.Parsers = []parsers.RegisterParser{}
-
-	i.deps.converters = make(map[string]common.Converter, 0)
-
-	i.deps.converters[web.Name] = web.NewConverter()
-
-	creator := mock_objectcreator.NewMockService(t)
-	creator.EXPECT().Create(mock.Anything, mock.Anything).Return(nil, "", nil).Times(1)
-	i.deps.objectCreator = creator
-	idGetter := mock_objectid.NewMockIdAndKeyProvider(t)
-	idGetter.EXPECT().GetInternalKey(mock.Anything).Return("").Times(1)
-	idGetter.EXPECT().GetIDAndPayload(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("id", treestorage.TreeStorageCreatePayload{}, nil).Times(1)
-	i.deps.idProvider = idGetter
-	parser := mock_parsers.NewMockParser(t)
-	parser.EXPECT().MatchUrl("http://example.com").Return(true).Times(1)
-	parser.EXPECT().ParseUrl("http://example.com").Return(&common.StateSnapshot{Blocks: []*model.Block{&model.Block{
-		Id: "bafybbbbruo3kqubijrbhr24zonagbz3ksxbrutwjjoczf37axdsusu4a",
-		Content: &model.BlockContentOfText{
-			Text: &model.BlockContentText{
-				Text:  "test",
-				Style: model.BlockContentText_Numbered,
-			},
-		},
-	}}}, nil).Times(1)
-
-	new := func() parsers.Parser {
-		return parser
-	}
-	parsers.RegisterFunc(new)
-
-	_, _, err := i.ImportWeb(context.Background(), &ImportRequest{
-		RpcObjectImportRequest: &pb.RpcObjectImportRequest{
-			Params:                &pb.RpcObjectImportRequestParamsOfBookmarksParams{BookmarksParams: &pb.RpcObjectImportRequestBookmarksParams{Url: "http://example.com"}},
-			UpdateExistingObjects: true,
-		},
-		Progress: process.NewNoOp(),
-	})
-
-	assert.Nil(t, err)
-}
-
-func Test_ImportWebFailedToCreateObject(t *testing.T) {
-	i := Import{deps: &Dependencies{}}
-	parsers.Parsers = []parsers.RegisterParser{}
-
-	i.deps.converters = make(map[string]common.Converter, 0)
-	i.deps.converters[web.Name] = web.NewConverter()
-
-	creator := mock_objectcreator.NewMockService(t)
-	//nolint:lll
-	creator.EXPECT().Create(mock.Anything, mock.Anything).Return(nil, "", errors.New("error")).Times(1)
-	i.deps.objectCreator = creator
-	idGetter := mock_objectid.NewMockIdAndKeyProvider(t)
-	idGetter.EXPECT().GetInternalKey(mock.Anything).Return("").Times(1)
-	idGetter.EXPECT().GetIDAndPayload(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return("id", treestorage.TreeStorageCreatePayload{}, nil).Times(1)
-	i.deps.idProvider = idGetter
-	parser := mock_parsers.NewMockParser(t)
-	parser.EXPECT().MatchUrl("http://example.com").Return(true).Times(1)
-	parser.EXPECT().ParseUrl("http://example.com").Return(&common.StateSnapshot{Blocks: []*model.Block{&model.Block{
-		Id: "bafybbbbruo3kqubijrbhr24zonagbz3ksxbrutwjjoczf37axdsusu4a",
-		Content: &model.BlockContentOfText{
-			Text: &model.BlockContentText{
-				Text:  "test",
-				Style: model.BlockContentText_Numbered,
-			},
-		},
-	}}}, nil).Times(1)
-
-	new := func() parsers.Parser {
-		return parser
-	}
-	parsers.RegisterFunc(new)
-
-	_, _, err := i.ImportWeb(context.Background(), &ImportRequest{
-		RpcObjectImportRequest: &pb.RpcObjectImportRequest{
-			Params:                &pb.RpcObjectImportRequestParamsOfBookmarksParams{BookmarksParams: &pb.RpcObjectImportRequestBookmarksParams{Url: "http://example.com"}},
-			UpdateExistingObjects: true,
-		},
-		Progress: process.NewNoOp(),
-	})
-
-	assert.NotNil(t, err)
-	assert.Equal(t, "couldn't create objects", err.Error())
 }
 
 func Test_ImportCancelError(t *testing.T) {
