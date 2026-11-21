@@ -39,7 +39,7 @@ jobs:
           java-version: '21'
 
 
-      - name: Set up Android NDK 28
+      - name: Set up Android NDK 30
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r30b
@@ -49,7 +49,7 @@ jobs:
         run: |
           NDK28=$(ls -d ${ANDROID_HOME}/ndk/30.* 2>/dev/null | sort -V | tail -1)
           if [ -z "$NDK28" ]; then
-            echo "ERROR: NDK 28.x not found in $ANDROID_HOME/ndk"
+            echo "ERROR: NDK 30.x not found in $ANDROID_HOME/ndk"
             ls ${ANDROID_HOME}/ndk/
             exit 1
           fi
