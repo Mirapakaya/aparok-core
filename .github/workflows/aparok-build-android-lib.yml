@@ -64,8 +64,8 @@ jobs:
       - name: Install gomobile
         run: |
           mkdir -p $GITHUB_WORKSPACE/deps
-          go build -o $GITHUB_WORKSPACE/deps golang.org/x/mobile/cmd/gomobile
-          go build -o $GITHUB_WORKSPACE/deps golang.org/x/mobile/cmd/gobind
+          go build -o $GITHUB_WORKSPACE/deps/gomobile golang.org/x/mobile/cmd/gomobile
+          go build -o $GITHUB_WORKSPACE/deps/gobind golang.org/x/mobile/cmd/gobind
           echo "$GITHUB_WORKSPACE/deps" >> $GITHUB_PATH
           gomobile init
 
