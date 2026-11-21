@@ -69,20 +69,16 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/deps:$PATH"
           gomobile init
 
+      - name: Clone aparok-sync
+        run: |
+          git clone --branch aparok/offline-private --depth 1 https://github.com/${{ github.repository_owner }}/aparok-sync.git ../aparok-sync
+
       - name: Build Android AAR
         run: |
           mkdir -p .release
-          echo "--- go list debug ---"
-          GOOS=android GOARCH=arm64 go list -m -json -tags="nogrpcserver gomobile nowatchdog nosigar nomutexdeadlockdetector timetzdata rasterizesvg" all 2>&1 | head -n 5
-          go list -m -json all 2>&1 | head -n 5
-          make compile-android-lib || true
-          echo "--- temp go.mod ---"
-          ls -lha /tmp/gomobile-work-*/src-android-arm64/go.mod || true
-          cat /tmp/gomobile-work-*/src-android-arm64/go.mod || true
-          echo "--- repo go.mod head ---"
-          head -n 10 go.mod
-          ls -lha lib.aar || true
-          ls -lha .release/ || true
+          make compile-android-lib
+          ls -lha lib.aar
+          ls -lha .release/
 
       - name: Create checksums
         run: |
