@@ -81,6 +81,9 @@ func (s *Service) RecoverFromLegacy(req *pb.RpcAccountRecoverFromLegacyExportReq
 		return RecoverFromLegacyResponse{}, ErrAccountMismatch
 	}
 	s.rootPath = req.RootPath
+	if s.rootPath == "" {
+		s.rootPath = getDefaultStoragePath()
+	}
 	s.fulltextPrimaryLanguage = req.FulltextPrimaryLanguage
 	if err = s.switchAccountLease(context.Background(), s.rootPath, address); err != nil {
 		return RecoverFromLegacyResponse{}, err

@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/anyproto/anytype-heart/pkg/lib/datastore/anystoreprovider"
 	"net/http"
 	_ "net/http/pprof"
-	"github.com/anyproto/anytype-heart/pkg/lib/datastore/anystoreprovider"
 	"os"
 	"runtime"
 	"sync"
@@ -13,6 +13,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/anyproto/anytype-heart/core"
+	"github.com/anyproto/anytype-heart/core/application"
 	"github.com/anyproto/anytype-heart/core/event"
 	"github.com/anyproto/anytype-heart/metrics"
 	"github.com/anyproto/anytype-heart/pb"
@@ -84,4 +85,8 @@ func SetEventHandlerMobile(eh MessageHandler) {
 
 func SetStorageKey(key []byte) {
 	anystoreprovider.SetStorageKey(key)
+}
+
+func SetStoragePath(path string) {
+	application.SetDefaultStoragePath(path)
 }

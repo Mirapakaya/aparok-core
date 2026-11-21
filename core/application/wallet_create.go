@@ -20,6 +20,9 @@ func (s *Service) WalletCreate(req *pb.RpcWalletCreateRequest) (mnemonic, accoun
 	defer s.lock.Unlock()
 
 	s.rootPath = req.RootPath
+	if s.rootPath == "" {
+		s.rootPath = getDefaultStoragePath()
+	}
 	s.fulltextPrimaryLanguage = req.FulltextPrimaryLanguage
 
 	err = os.MkdirAll(s.rootPath, 0700)

@@ -23,6 +23,9 @@ func (s *Service) WalletRecover(req *pb.RpcWalletRecoverRequest) error {
 		return errors.Join(ErrBadInput, fmt.Errorf("either mnemonic or accountKey must be provided"))
 	}
 
+	if req.RootPath == "" {
+		req.RootPath = getDefaultStoragePath()
+	}
 	err := os.MkdirAll(req.RootPath, 0700)
 	if err != nil {
 		return errors.Join(ErrFailedToCreateLocalRepo, err)
@@ -47,6 +50,9 @@ func (s *Service) WalletRecover(req *pb.RpcWalletRecoverRequest) error {
 		s.sessionSigningKey = buf
 
 		s.rootPath = req.RootPath
+	if s.rootPath == "" {
+		s.rootPath = getDefaultStoragePath()
+	}
 		s.fulltextPrimaryLanguage = req.FulltextPrimaryLanguage
 		return nil
 	}
@@ -69,6 +75,9 @@ func (s *Service) WalletRecover(req *pb.RpcWalletRecoverRequest) error {
 	s.sessionSigningKey = buf
 
 	s.rootPath = req.RootPath
+	if s.rootPath == "" {
+		s.rootPath = getDefaultStoragePath()
+	}
 	s.fulltextPrimaryLanguage = req.FulltextPrimaryLanguage
 	return nil
 }
