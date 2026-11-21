@@ -63,8 +63,10 @@ jobs:
 
       - name: Install gomobile
         run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/goandroid@latest || true
+          mkdir -p $GITHUB_WORKSPACE/deps
+          go build -o $GITHUB_WORKSPACE/deps golang.org/x/mobile/cmd/gomobile
+          go build -o $GITHUB_WORKSPACE/deps golang.org/x/mobile/cmd/gobind
+          echo "$GITHUB_WORKSPACE/deps" >> $GITHUB_PATH
           gomobile init
 
       - name: Build Android AAR
