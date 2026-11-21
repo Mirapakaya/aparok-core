@@ -79,10 +79,9 @@ jobs:
           go mod edit -replace github.com/anyproto/any-sync="$SYNC_PATH"
           go mod tidy
 
-      - name: Verify native libs
+      - name: Download native libs
         run: |
-          ls -l deps/libs/android-arm64/libtantivy_go.a
-          file deps/libs/android-arm64/libtantivy_go.a
+          make download-tantivy-all
 
       - name: Build Android AAR
         run: |
