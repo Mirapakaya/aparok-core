@@ -37,3 +37,7 @@ the same storage-key based encryption.
 
 Not yet encrypted. Plan: keep them out of long-term storage or encrypt with the
 storage key before writing.
+
+## Storage location selection
+
+The default vault root path can be set from the Android app via the gomobile-exported  function. When  is omitted from account creation/recovery requests, the core falls back to this default path. This keeps the vault data under user-controlled local storage.
