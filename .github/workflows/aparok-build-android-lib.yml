@@ -42,12 +42,12 @@ jobs:
       - name: Set up Android NDK 28
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r28b
+          ndk-version: r30b
           local-cache: true
 
       - name: Export NDK path
         run: |
-          NDK28=$(ls -d ${ANDROID_HOME}/ndk/28.* 2>/dev/null | sort -V | tail -1)
+          NDK28=$(ls -d ${ANDROID_HOME}/ndk/30.* 2>/dev/null | sort -V | tail -1)
           if [ -z "$NDK28" ]; then
             echo "ERROR: NDK 28.x not found in $ANDROID_HOME/ndk"
             ls ${ANDROID_HOME}/ndk/
