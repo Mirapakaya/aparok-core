@@ -39,11 +39,6 @@ jobs:
           java-version: '21'
 
 
-      - name: Set up Android NDK 30
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r30b
-          local-cache: true
 
       - name: Export NDK path
         run: |
