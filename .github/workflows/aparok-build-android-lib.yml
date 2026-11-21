@@ -72,6 +72,9 @@ jobs:
       - name: Build Android AAR
         run: |
           mkdir -p .release
+          echo "--- go list debug ---"
+          GOOS=android GOARCH=arm64 go list -m -json -tags="nogrpcserver gomobile nowatchdog nosigar nomutexdeadlockdetector timetzdata rasterizesvg" all 2>&1 | head -n 5
+          go list -m -json all 2>&1 | head -n 5
           make compile-android-lib || true
           echo "--- temp go.mod ---"
           ls -lha /tmp/gomobile-work-*/src-android-arm64/go.mod || true
