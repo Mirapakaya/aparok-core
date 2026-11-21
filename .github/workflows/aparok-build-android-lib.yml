@@ -73,20 +73,16 @@ jobs:
         run: |
           git clone --branch aparok/offline-private --depth 1 https://github.com/${{ github.repository_owner }}/aparok-sync.git ../aparok-sync
 
+      - name: Prepare local any-sync replace
+        run: |
+          SYNC_PATH="$(realpath "../aparok-sync")"
+          go mod edit -replace github.com/anyproto/any-sync="$SYNC_PATH"
+          go mod tidy
+
       - name: Build Android AAR
         run: |
           mkdir -p .release
-          make compile-android-lib || true
-          ls -lha lib.aar || true
-          ls -lha .release/ || true
-          echo "--- temp go.mod ---"
-          find /tmp -maxdepth 1 -name "gomobile-work-*" -type d 2>/dev/null | head -1 | xargs -I{} cat {}/src-android-arm64/go.mod 2>/dev/null || true
-          echo "--- run go mod tidy in temp ---"
-          for d in /tmp/gomobile-work-*/src-android-arm64; do
-            if [ -d "$d" ]; then
-              (cd "$d" && go mod tidy -v 2>&1 | tail -n 20) || true
-            fi
-          done
+          make compile-android-lib
 
       - name: Create checksums
         run: |
