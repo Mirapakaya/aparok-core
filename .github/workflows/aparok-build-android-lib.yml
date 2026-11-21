@@ -83,6 +83,12 @@ jobs:
         run: |
           make download-tantivy-all
 
+      - name: Install protoc and generate proto/json artifacts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          make setup-protoc ci-java-protos
+
       - name: Build Android AAR
         run: |
           mkdir -p .release
